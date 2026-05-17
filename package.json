@@ -1,0 +1,40 @@
+{
+  "name": "minor-project",
+  "version": "1.0.0",
+  "description": "A crypto investment and portfolio analyzer that helps users track their investments, analyze their portfolio performance, and make informed decisions about their crypto assets.",
+  "keywords": [
+    "javaScript",
+    "Backened"
+  ],
+  "homepage": "https://github.com/Neev213/crypto-investment-and-portfolio-analyzer#readme",
+  "bugs": {
+    "url": "https://github.com/Neev213/crypto-investment-and-portfolio-analyzer/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Neev213/crypto-investment-and-portfolio-analyzer.git"
+  },
+  "license": "ISC",
+  "author": "Neev",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.16.1",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "express-validator": "^7.3.2",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.6.2",
+    "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
