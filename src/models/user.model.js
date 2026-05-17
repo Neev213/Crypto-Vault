@@ -48,4 +48,55 @@ const userSchema = new Schema({
         default: true,
     },
 
+}, { timestamps: true });
+
+userSchema.pre("save", async function () {
+
+    if (!this.isModified("password")) {
+        return;
+    }
+
+    this.password = await bcrypt.hash(this.password, 10);
+
 })
+userSchema.methods.isPasswordCorrect = async function(password){
+    return await bcrypt.compare(password, this.password)
+}
+
+userSchema.methods.generateAccessToken = function(){ // token generation
+    return jwt.sign(
+        {
+            _id: this._id,
+            email: this.email,
+            username: this.username,
+            fullname: this.fullname
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        {
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
+        }
+    )
+}
+
+userSchema.methods.generateRefreshToken = function(){ // token generation
+    return jwt.sign(
+        {
+            _id: this._id,
+        },
+        process.env.REFRESH_TOKEN_SECRET,
+        {
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+        }
+    )
+}
+
+
+userSchema.methods.toJSON = function () {
+  const user = this.toObject(); // convert mongoose document to plain JS object
+  delete user.password; // delete password field from response
+  delete user.refreshToken; // delete refreshToken field from response — never expose this
+  return user; // return the cleaned object
+};
+
+
+export const User = mongoose.model("User", userSchema)
