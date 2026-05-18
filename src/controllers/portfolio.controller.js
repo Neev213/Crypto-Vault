@@ -6,21 +6,49 @@ import { fetchSimplePrices } from "../services/crypto.service.js";
 import { buildHoldingsWithPrices, analyzePortfolio } from "../utils/portfolioAnalytics.js";
 
 const getOrCreatePortfolio = async (userId) => {
-    let portfolio = await Portfolio.findOne({ userId });
-    if (!portfolio) {
-        portfolio = await Portfolio.create({
+    const portfolios = await Portfolio.find({ userId }).sort({ updatedAt: -1 });
+
+    if (portfolios.length === 0) {
+        return Portfolio.create({
             userId,
             name: "My Portfolio",
             holdings: [],
         });
     }
-    return portfolio;
+
+    if (portfolios.length === 1) {
+        return portfolios[0];
+    }
+
+    const primary = portfolios[0];
+    for (let i = 1; i < portfolios.length; i++) {
+        for (const holding of portfolios[i].holdings) {
+            const exists = primary.holdings.some(
+                (h) => h.coinId.toLowerCase() === holding.coinId.toLowerCase()
+            );
+            if (!exists) primary.holdings.push(holding);
+        }
+        await Portfolio.findByIdAndDelete(portfolios[i]._id);
+    }
+    primary.markModified("holdings");
+    await primary.save();
+    return primary;
+};
+
+const safeFetchPrices = async (coinIds) => {
+    if (!coinIds.length) return {};
+    try {
+        return await fetchSimplePrices(coinIds);
+    } catch (err) {
+        console.error("CoinGecko price fetch failed:", err.message);
+        return {};
+    }
 };
 
 export const getPortfolio = asyncHandler(async (req, res) => {
     const portfolio = await getOrCreatePortfolio(req.user._id);
     const coinIds = portfolio.holdings.map((h) => h.coinId);
-    const prices = coinIds.length ? await fetchSimplePrices(coinIds) : {};
+    const prices = await safeFetchPrices(coinIds);
     const enrichedHoldings = buildHoldingsWithPrices(portfolio.holdings, prices);
 
     return res.status(200).json(
@@ -61,29 +89,39 @@ export const updatePortfolioDetails = asyncHandler(async (req, res) => {
 export const addHolding = asyncHandler(async (req, res) => {
     const { coinId, coinName, symbol, quantity, buyPrice } = req.body;
 
-    if (!coinId || !coinName || !symbol || quantity == null || buyPrice == null) {
-        throw new ApiError(400, "coinId, coinName, symbol, quantity and buyPrice are required");
+    if (!coinId?.trim() || !coinName?.trim() || !symbol?.trim()) {
+        throw new ApiError(400, "coinId, coinName, and symbol are required");
     }
 
-    if (Number(quantity) <= 0 || Number(buyPrice) <= 0) {
-        throw new ApiError(400, "quantity and buyPrice must be greater than 0");
+    const qty = Number(quantity);
+    const price = Number(buyPrice);
+
+    if (!Number.isFinite(qty) || qty <= 0) {
+        throw new ApiError(400, "quantity must be a number greater than 0");
+    }
+    if (!Number.isFinite(price) || price <= 0) {
+        throw new ApiError(400, "buyPrice must be a number greater than 0");
     }
 
+    const normalizedCoinId = coinId.trim().toLowerCase();
     const portfolio = await getOrCreatePortfolio(req.user._id);
-    const existing = portfolio.holdings.find((h) => h.coinId === coinId);
+    const existing = portfolio.holdings.find(
+        (h) => h.coinId.toLowerCase() === normalizedCoinId
+    );
 
     if (existing) {
         throw new ApiError(409, "This coin already exists in your portfolio. Use update holding instead.");
     }
 
     portfolio.holdings.push({
-        coinId,
-        coinName,
-        symbol: symbol.toUpperCase(),
-        quantity: Number(quantity),
-        buyPrice: Number(buyPrice),
+        coinId: normalizedCoinId,
+        coinName: coinName.trim(),
+        symbol: symbol.trim().toUpperCase(),
+        quantity: qty,
+        buyPrice: price,
     });
 
+    portfolio.markModified("holdings");
     await portfolio.save();
 
     return res.status(201).json(
@@ -113,6 +151,7 @@ export const updateHolding = asyncHandler(async (req, res) => {
     if (coinName) holding.coinName = coinName;
     if (symbol) holding.symbol = symbol.toUpperCase();
 
+    portfolio.markModified("holdings");
     await portfolio.save();
 
     return res.status(200).json(
@@ -131,6 +170,7 @@ export const removeHolding = asyncHandler(async (req, res) => {
     }
 
     portfolio.holdings.splice(index, 1);
+    portfolio.markModified("holdings");
     await portfolio.save();
 
     return res.status(200).json(
@@ -141,7 +181,7 @@ export const removeHolding = asyncHandler(async (req, res) => {
 export const getPortfolioAnalysis = asyncHandler(async (req, res) => {
     const portfolio = await getOrCreatePortfolio(req.user._id);
     const coinIds = portfolio.holdings.map((h) => h.coinId);
-    const prices = coinIds.length ? await fetchSimplePrices(coinIds) : {};
+    const prices = await safeFetchPrices(coinIds);
     const enrichedHoldings = buildHoldingsWithPrices(portfolio.holdings, prices);
     const analysis = analyzePortfolio(enrichedHoldings);
 

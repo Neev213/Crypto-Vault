@@ -22,6 +22,6 @@ const portfolioSchema = new mongoose.Schema({
     holdings:    { type: [holdingSchema], default: [] }, // array of coins user is tracking
 }, { timestamps: true }); // automatically add createdAt and updatedAt
 
-portfolioSchema.index({ userId: 1 }); // index for fast portfolio lookup by user
+portfolioSchema.index({ userId: 1 }, { unique: true });
 
 export const Portfolio = mongoose.model('Portfolio', portfolioSchema); // export as named export
