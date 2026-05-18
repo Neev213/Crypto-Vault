@@ -3,19 +3,20 @@ import mongoose from "mongoose";
 const priceHistorySchema = new mongoose.Schema({
     cryptoId: {
         type: String,
-        required: true
+        required: true,
     },
     price: {
         type: Number,
-        required: true
+        required: true,
     },
     recordedAt: {
         type: Date,
-        required: true
-    }
-}, {timestamps: false})
+        required: true,
+        default: Date.now,
+    },
+}, { timestamps: false });
 
-priceHistorySchema.index({ coinId: 1 }); // index on coinId for fast lookup of a coin's history
-priceHistorySchema.index({ coinId: 1, recordedAt: -1 }); // compound index — gets latest prices first for a specific coin
+priceHistorySchema.index({ cryptoId: 1 });
+priceHistorySchema.index({ cryptoId: 1, recordedAt: -1 });
 
-export const PriceHistory = mongoose.model("PriceHistory", priceHistorySchema)
+export const PriceHistory = mongoose.model("PriceHistory", priceHistorySchema);

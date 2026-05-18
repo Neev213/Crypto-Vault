@@ -2,21 +2,29 @@ import mongoose from "mongoose";
 
 const watchlistSchema = new mongoose.Schema({
     userId: {
-        type: mongoose.Types.ObjectId,
-        ref: "User"
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
     },
     cryptoId: {
         type: String,
-        required: true
+        required: true,
+    },
+    coinName: {
+        type: String,
+        default: "",
+    },
+    symbol: {
+        type: String,
+        default: "",
     },
     addedAt: {
-    type: Date, // stores the date when coin was added to watchlist
-    default: Date.now, // defaults to current date and time
+        type: Date,
+        default: Date.now,
     },
-}, {timestamps: true})
+}, { timestamps: true });
 
-watchListSchema.index({ userId: 1 }); // index on userId for fast lookup of user's watchlist
-watchListSchema.index({ userId: 1, coinId: 1 }, { unique: true }); // prevent same coin being added twice by same user
+watchlistSchema.index({ userId: 1 });
+watchlistSchema.index({ userId: 1, cryptoId: 1 }, { unique: true });
 
-
-export const Watchlist = mongoose.model("Watchlist", watchlistSchema)
+export const Watchlist = mongoose.model("Watchlist", watchlistSchema);
