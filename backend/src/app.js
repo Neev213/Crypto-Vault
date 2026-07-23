@@ -60,17 +60,11 @@ app.use(API_PREFIX, (_req, res, next) => {
 });
 
 const requireDB = async (_req, res, next) => {
-    if (mongoose.connection.readyState === 0) {
-        await connectDB();
-    }
-    if (mongoose.connection.readyState === 2) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-    }
     if (mongoose.connection.readyState !== 1) {
         return res.status(503).json({
             success: false,
             statusCode: 503,
-            message: "Database connection pending or blocked. Please whitelist your IP address on MongoDB Atlas (Security -> Network Access -> Add IP Address / 0.0.0.0/0).",
+            message: "Database connection failed. Please ensure MONGODB_URI is set in Vercel, and that you have whitelisted all IPs (0.0.0.0/0) in MongoDB Atlas Network Access.",
         });
     }
     next();
