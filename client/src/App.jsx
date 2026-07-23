@@ -14,6 +14,8 @@ const Markets = lazy(() => import("./pages/Markets"));
 const Watchlist = lazy(() => import("./pages/Watchlist"));
 const Alerts = lazy(() => import("./pages/Alerts"));
 const CoinDetail = lazy(() => import("./pages/CoinDetail"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 function PageLoader() {
   return <LoadingSpinner fullScreen />;
@@ -78,6 +80,22 @@ export default function App() {
               element={
                 <PublicOnly>
                   <Register />
+                </PublicOnly>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicOnly>
+                  <ForgotPassword />
+                </PublicOnly>
+              }
+            />
+            <Route
+              path="/reset-password/:token"
+              element={
+                <PublicOnly>
+                  <ResetPassword />
                 </PublicOnly>
               }
             />

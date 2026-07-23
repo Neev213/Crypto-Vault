@@ -72,14 +72,21 @@ export default function Login() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
             />
-            <Input
-              label="Password"
-              type="password"
-              placeholder="••••••••"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-            />
+            <div className="space-y-1">
+              <Input
+                label="Password"
+                type="password"
+                placeholder="••••••••"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+              />
+              <div className="flex justify-end">
+                <Link to="/forgot-password" className="text-sm text-cyan-400 hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
+            </div>
           </div>
 
           <Button type="submit" className="mt-6 w-full" loading={loading}>

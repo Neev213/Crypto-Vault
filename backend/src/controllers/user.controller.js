@@ -7,7 +7,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import jwt from 'jsonwebtoken'; // import jwt for refresh token verification
-
+import crypto from 'crypto';
+import { sendEmail } from "../utils/sendEmail.js";
 // helper function to generate both access and refresh tokens for a user
 const generateTokens = async (userId) => {
     const user = await User.findById(userId).select("+refreshToken");
@@ -372,4 +373,80 @@ export const deleteAccount = asyncHandler(async (req, res) => {
         .clearCookie('accessToken', cookieOptions) // clear access token cookie
         .clearCookie('refreshToken', cookieOptions) // clear refresh token cookie
         .json(new ApiResponse(200, {}, 'Account deleted successfully'));
+});
+
+// ─── forgot password ──────────────────────────────────────────────────────────
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        throw new ApiError(400, "Email is required");
+    }
+
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const resetToken = user.getResetPasswordToken();
+    await user.save({ validateBeforeSave: false });
+
+    // Assuming frontend is running on same origin or Vercel URL
+    // For local dev, hardcode to 5173 if req.get("host") is localhost:8000
+    let origin = req.get("origin");
+    if (!origin) {
+        const host = req.get("host");
+        origin = host?.includes("localhost") ? "http://localhost:5173" : `https://${host}`;
+    }
+    const resetUrl = `${origin}/reset-password/${resetToken}`;
+
+    const message = `You requested a password reset. Please go to this link to reset your password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.`;
+
+    try {
+        await sendEmail({
+            email: user.email,
+            subject: "CryptoVault Password Reset",
+            message,
+        });
+
+        res.status(200).json(new ApiResponse(200, {}, `Reset password link sent to ${user.email}`));
+    } catch (error) {
+        user.forgotPasswordToken = undefined;
+        user.forgotPasswordExpiry = undefined;
+        await user.save({ validateBeforeSave: false });
+        throw new ApiError(500, "There was an error sending the email. Try again later");
+    }
+});
+
+// ─── reset password ───────────────────────────────────────────────────────────
+
+export const resetPassword = asyncHandler(async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+        throw new ApiError(400, "Password is required");
+    }
+
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
+
+    const user = await User.findOne({
+        forgotPasswordToken: hashedToken,
+        forgotPasswordExpiry: { $gt: Date.now() },
+    }).select("+password");
+
+    if (!user) {
+        throw new ApiError(400, "Reset password token is invalid or has expired");
+    }
+
+    user.password = password;
+    user.forgotPasswordToken = undefined;
+    user.forgotPasswordExpiry = undefined;
+    await user.save();
+
+    res.status(200).json(new ApiResponse(200, {}, "Password reset successfully. You can now login."));
 });

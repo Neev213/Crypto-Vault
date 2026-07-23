@@ -9,6 +9,8 @@ import {
     updateAvatar,
     changePassword,
     deleteAccount,
+    forgotPassword,
+    resetPassword,
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/multer.middleware.js";
@@ -18,6 +20,8 @@ const router = Router();
 router.post("/register", upload.single("avatar"), registerUser);
 router.post("/login", loginUser);
 router.post("/refresh-token", refreshAccessToken);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
 
 router.post("/logout", verifyJWT, logoutUser);
 router.get("/me", verifyJWT, getCurrentUser);

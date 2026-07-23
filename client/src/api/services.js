@@ -33,6 +33,8 @@ export const authApi = {
   login: (body) => api.post("/users/login", body),
   logout: () => api.post("/users/logout"),
   me: async () => unwrap(await api.get("/users/me")),
+  forgotPassword: (email) => api.post("/users/forgot-password", { email }),
+  resetPassword: (token, password) => api.post(`/users/reset-password/${token}`, { password }),
 };
 
 export const portfolioApi = {

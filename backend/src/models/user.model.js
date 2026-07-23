@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
+import crypto from "crypto";
 const userSchema = new mongoose.Schema({
     username: {
         type: String,
@@ -52,6 +52,8 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
+    forgotPasswordToken: String,
+    forgotPasswordExpiry: Date,
 }, { timestamps: true });
 
 userSchema.pre("save", async function () {
@@ -84,10 +86,28 @@ userSchema.methods.generateRefreshToken = function () {
     );
 };
 
+userSchema.methods.getResetPasswordToken = function () {
+    // Generate token
+    const resetToken = crypto.randomBytes(20).toString("hex");
+
+    // Hash token and set to forgotPasswordToken field
+    this.forgotPasswordToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+    // Set expiry (15 minutes)
+    this.forgotPasswordExpiry = Date.now() + 15 * 60 * 1000;
+
+    return resetToken;
+};
+
 userSchema.methods.toJSON = function () {
     const user = this.toObject();
     delete user.password;
     delete user.refreshToken;
+    delete user.forgotPasswordToken;
+    delete user.forgotPasswordExpiry;
     return user;
 };
 
